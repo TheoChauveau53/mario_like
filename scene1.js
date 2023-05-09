@@ -39,8 +39,12 @@ class scene1 extends Phaser.Scene {
             "clef",
             this.tileset
         );
-
-        this.player = this.physics.add.sprite(8 * 32, 0, "fourmi");
+        if(this.spawnx && this.spawny){
+            this.player = this.physics.add.sprite(this.spawnx, this.spawny, "fourmi");
+        }
+        else{
+        this.player = this.physics.add.sprite(8 * 32, 0, "fourmi")
+        }
         this.solide.setCollisionByExclusion(-1, true);
         this.porte.setCollisionByExclusion(-1, true);
         this.clef.setCollisionByExclusion(-1, true);
@@ -81,10 +85,39 @@ class scene1 extends Phaser.Scene {
         }
         else {
             this.player.setVelocityX(0)
+            this.player.anims.stop()
         }
-        if ((this.clavier.SPACE.isDown || this.cursors.up.isDown) && this.player.body.onFloor()) {
+        if ((this.clavier.SPACE.isDown || this.cursors.up.isDown) && this.player.body.onFloor()){
             this.player.setVelocityY(-300)
 
+        }
+
+
+        if(this.player.body.blocked.left){
+            this.player.body.allowGravity = false
+            this.player.setVelocityY(0)
+            this.player.angle = 90
+            if (this.cursors.up.isDown){
+                this.player.setVelocityY(-30)
+            }
+            if (this.cursors.down.isDown){
+                this.player.setVelocityY(30)
+            }
+        }
+        else if(this.player.body.blocked.right){
+            this.player.body.allowGravity = false
+            this.player.setVelocityY(0)
+            this.player.angle = -90
+            if (this.cursors.up.isDown){
+                this.player.setVelocityY(-30)
+            }
+            if (this.cursors.down.isDown){
+                this.player.setVelocityY(30)
+            }
+        }
+        else {
+            this.player.body.allowGravity = true
+            this.player.angle = 0
         }
 
         if(this.porte_unlock == true ){
