@@ -15,7 +15,7 @@ class scene1 extends Phaser.Scene {
         this.load.spritesheet('fourmi_normale', 'assets/fourmi_originelle.png',
             { frameWidth: 41, frameHeight: 25 });
         this.load.image("tileset", "assets/tileset.png");
-        this.load.image("cordes", "assets/corde.png");
+        this.load.image("corde", "assets/corde.png");
         this.load.tilemapTiledJSON("map", "assets/scene.json");
         this.load.spritesheet('fourmi', 'assets/fourmi.png',
             { frameWidth: 41, frameHeight: 25 });
@@ -45,15 +45,17 @@ class scene1 extends Phaser.Scene {
             this.tileset
         );
 
-        
-
+        this.grpcorde = this.physics.add.group({ immovable: true, allowGravity: false })
         this.corde = this.map.getObjectLayer("corde");
-
-        this.grpcorde = this.physics.add.group()
         this.corde.objects.forEach(coord => {
-            this.grpcorde.create(coord.x , coord.y , "cordes");
+            this.grpcorde.create(coord.x , coord.y , "corde");
         });
 
+        //this.grpplateforme = this.physics.add.group({ immovable: true, allowGravity: false })
+        //this.plateforme = this.map.getObjectLayer("platerforme");
+        //this.plateforme.objects.forEach(coord => {
+        //    this.grpcorde.create(coord.x , coord.y , "corde");
+        //});
 
 
         if (this.spawnx && this.spawny) {
@@ -151,20 +153,29 @@ class scene1 extends Phaser.Scene {
         }
         //GRIMPER CORDE
 
-        //if (this.physics.overlap(this.player, this.grpcorde)) {
-        //    console.log("overlap")
-        //    if (this.clavier.E.isDown) {
-        //        surcorde = true
-        //        console.log("sur la corde")
-        //    }
-        //}
+        if (this.physics.overlap(this.player, this.grpcorde)) {
+            console.log("overlap")
+            if (this.clavier.E.isDown && surcorde==false) {
+                surcorde = true
+                console.log("sur la corde")
+            }
+        }
+        else{
+            surcorde = false
+        }
 
-        //if (surcorde == true) {
-        //    co
-        //    if (this.cursors.up.isDown){
-        //        this.player.setVelocityY(-100)
-        //    }
-        //}
+        if (surcorde == true) {
+            if (this.cursors.up.isDown){
+                this.player.setVelocityY(-100)
+            }
+            if (this.cursors.down.isDown){
+                this.player.setVelocityY(100)
+            }
+            if(this.clavier.SPACE.isDown){
+                console.log("sortie")
+                surcorde=false
+            }
+        }
 
 
         if (this.porte_unlock == true) {
