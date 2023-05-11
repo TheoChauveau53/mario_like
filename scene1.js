@@ -12,10 +12,14 @@ class scene1 extends Phaser.Scene {
     }
 
     preload() {
-        this.load.spritesheet('fourmi_normale', 'assets/fourmi_originelle.png',
+        this.load.spritesheet('fourmi_soldat', 'assets/fourmi_soldat.png',
             { frameWidth: 41, frameHeight: 25 });
+        //this.load.spritesheet('fourmi_ouvriere', 'assets/fourmi_ouvriere.png',
+        //    { frameWidth: 41, frameHeight: 25 });
+        this.load.image('fourmi_ouvriere', 'assets/fourmi_ouvriere.png');
         this.load.image("tileset", "assets/tileset.png");
         this.load.image("corde", "assets/corde.png");
+        this.load.image("plateforme", "assets/plateforme.png");
         this.load.tilemapTiledJSON("map", "assets/scene.json");
         this.load.spritesheet('fourmi', 'assets/fourmi.png',
             { frameWidth: 41, frameHeight: 25 });
@@ -48,30 +52,34 @@ class scene1 extends Phaser.Scene {
         this.grpcorde = this.physics.add.group({ immovable: true, allowGravity: false })
         this.corde = this.map.getObjectLayer("corde");
         this.corde.objects.forEach(coord => {
-            this.grpcorde.create(coord.x , coord.y , "corde");
+            this.grpcorde.create(coord.x+16 , coord.y , "corde");
         });
 
-        //this.grpplateforme = this.physics.add.group({ immovable: true, allowGravity: false })
-        //this.plateforme = this.map.getObjectLayer("platerforme");
-        //this.plateforme.objects.forEach(coord => {
-        //    this.grpcorde.create(coord.x , coord.y , "corde");
-        //});
+        this.grpplateforme = this.physics.add.group({ immovable: true, allowGravity: false })
+        this.plateforme = this.map.getObjectLayer("plateforme");
+        this.plateforme.objects.forEach(coord => {
+            this.grpplateforme.create(coord.x+16 , coord.y , "plateforme");
+        });
 
-
+        this.fourmi_ouvriere = this.physics.add.sprite(-5 * 32, 11*32, "fourmi_ouvriere").body.setAllowGravity(false).setImmovable(true)
         if (this.spawnx && this.spawny) {
             this.player = this.physics.add.sprite(this.spawnx, this.spawny, "fourmi");
         }
         else {
             this.player = this.physics.add.sprite(8 * 32, 0, "fourmi")
         }
+         
+        
 
 
         this.solide.setCollisionByExclusion(-1, true);
         this.porte.setCollisionByExclusion(-1, true);
         this.clef.setCollisionByExclusion(-1, true);
         this.physics.add.collider(this.player, this.solide);
+        this.physics.add.collider(this.player, this.fourmi_ouvriere);
         this.collide_porte = this.physics.add.collider(this.player, this.porte);
         this.physics.add.overlap(this.player, this.clef, this.getclef, null, this);
+        this.collide_plateforme = this.physics.add.collider(this.player, this.grpplateforme);
 
         this.anims.create({
             key: 'left',
@@ -147,7 +155,8 @@ class scene1 extends Phaser.Scene {
                 }
             }
             else {
-                this.player.body.allowGravity = true
+                if(surcorde==false){
+                this.player.body.allowGravity = true}
                 this.player.angle = 0
             }
         }
@@ -156,15 +165,29 @@ class scene1 extends Phaser.Scene {
         if (this.physics.overlap(this.player, this.grpcorde)) {
             console.log("overlap")
             if (this.clavier.E.isDown && surcorde==false) {
+                this.player.body.allowGravity = false
                 surcorde = true
                 console.log("sur la corde")
+                this.collide_plateforme.active = false
+        
             }
         }
         else{
+            if(grimper==true && surcorde==true){
+                this.player.body.allowGravity = true
+                this.collide_plateforme.active = true
+            }
             surcorde = false
+            if(grimper==false){
+                this.player.body.allowGravity = true
+                this.collide_plateforme.active = true
+            }
+            console.log("pas sur corde")
         }
 
         if (surcorde == true) {
+            
+            this.player.setVelocityY(0)
             if (this.cursors.up.isDown){
                 this.player.setVelocityY(-100)
             }
@@ -174,15 +197,24 @@ class scene1 extends Phaser.Scene {
             if(this.clavier.SPACE.isDown){
                 console.log("sortie")
                 surcorde=false
+                this.player.body.allowGravity = true
+                this.collide_plateforme.active = true
             }
         }
 
-
+        // OUVRIR PORTE
         if (this.porte_unlock == true) {
             this.collide_porte.active = false
         }
 
+
+        // OBTENIR CAPACITE FOURMI OUVRIERE
+        if (this.physics.overlap(this.player, this.fourmi_ouvriere)){
+            console.log("test")
+            this.add.text(this.fourmi_ouvriere.x, this.fourmi_ouvriere.y, "Appuie sur E pour me recruter", { fill: '#000000', fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif', fontSize: 30 }) 
+        }
     }
+
 
 
     // OUVRIR PORTE 
