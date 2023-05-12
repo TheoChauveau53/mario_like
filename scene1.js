@@ -1,3 +1,4 @@
+var monter = false
 var grimper = false
 var surcorde = false
 class scene1 extends Phaser.Scene {
@@ -52,31 +53,38 @@ class scene1 extends Phaser.Scene {
         this.grpcorde = this.physics.add.group({ immovable: true, allowGravity: false })
         this.corde = this.map.getObjectLayer("corde");
         this.corde.objects.forEach(coord => {
-            this.grpcorde.create(coord.x+16 , coord.y , "corde");
+            this.grpcorde.create(coord.x + 16, coord.y, "corde");
         });
 
         this.grpplateforme = this.physics.add.group({ immovable: true, allowGravity: false })
         this.plateforme = this.map.getObjectLayer("plateforme");
         this.plateforme.objects.forEach(coord => {
-            this.grpplateforme.create(coord.x+16 , coord.y , "plateforme");
+            this.grpplateforme.create(coord.x + 16, coord.y, "plateforme");
         });
 
-        this.fourmi_ouvriere = this.physics.add.sprite(-5 * 32, 11*32, "fourmi_ouvriere").body.setAllowGravity(false).setImmovable(true)
+        this.grpmonter = this.physics.add.group({ immovable: true, allowGravity: false })
+        this.monter = this.map.getObjectLayer("monter");
+        this.monter.objects.forEach(coord => {
+            this.grpmonter.create(coord.x + 16, coord.y).setVisible(false)
+        });
+
+
+        this.fourmi_ouvriere = this.physics.add.sprite(-5 * 32, 11 * 32, "fourmi_ouvriere")//.body.setAllowGravity(false).setImmovable(true)
         if (this.spawnx && this.spawny) {
             this.player = this.physics.add.sprite(this.spawnx, this.spawny, "fourmi");
         }
         else {
             this.player = this.physics.add.sprite(8 * 32, 0, "fourmi")
         }
-         
-        
+
+        this.txt_ouvriere = this.add.text(this.fourmi_ouvriere.x, this.fourmi_ouvriere.y, "Appuie sur E pour me recruter", { fill: '#000000', fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif', fontSize: 10 })
 
 
         this.solide.setCollisionByExclusion(-1, true);
         this.porte.setCollisionByExclusion(-1, true);
         this.clef.setCollisionByExclusion(-1, true);
         this.physics.add.collider(this.player, this.solide);
-        this.physics.add.collider(this.player, this.fourmi_ouvriere);
+        this.physics.add.collider(this.fourmi_ouvriere, this.solide); // TODO
         this.collide_porte = this.physics.add.collider(this.player, this.porte);
         this.physics.add.overlap(this.player, this.clef, this.getclef, null, this);
         this.collide_plateforme = this.physics.add.collider(this.player, this.grpplateforme);
@@ -155,8 +163,9 @@ class scene1 extends Phaser.Scene {
                 }
             }
             else {
-                if(surcorde==false){
-                this.player.body.allowGravity = true}
+                if (surcorde == false) {
+                    this.player.body.allowGravity = true
+                }
                 this.player.angle = 0
             }
         }
@@ -164,21 +173,21 @@ class scene1 extends Phaser.Scene {
 
         if (this.physics.overlap(this.player, this.grpcorde)) {
             console.log("overlap")
-            if (this.clavier.E.isDown && surcorde==false) {
+            if (this.clavier.E.isDown && surcorde == false) {
                 this.player.body.allowGravity = false
                 surcorde = true
                 console.log("sur la corde")
                 this.collide_plateforme.active = false
-        
+
             }
         }
-        else{
-            if(grimper==true && surcorde==true){
+        else {
+            if (grimper == true && surcorde == true) {
                 this.player.body.allowGravity = true
                 this.collide_plateforme.active = true
             }
             surcorde = false
-            if(grimper==false){
+            if (grimper == false && monter == false) {
                 this.player.body.allowGravity = true
                 this.collide_plateforme.active = true
             }
@@ -186,20 +195,39 @@ class scene1 extends Phaser.Scene {
         }
 
         if (surcorde == true) {
-            
+
             this.player.setVelocityY(0)
-            if (this.cursors.up.isDown){
+            if (this.cursors.up.isDown) {
                 this.player.setVelocityY(-100)
             }
-            if (this.cursors.down.isDown){
+            if (this.cursors.down.isDown) {
                 this.player.setVelocityY(100)
             }
-            if(this.clavier.SPACE.isDown){
+            if (this.clavier.SPACE.isDown) {
                 console.log("sortie")
-                surcorde=false
+                surcorde = false
                 this.player.body.allowGravity = true
                 this.collide_plateforme.active = true
             }
+        }
+
+        // MONTER 
+        if (this.physics.overlap(this.player, this.grpmonter) && monter==false) {
+            if (this.clavier.SPACE.isDown) {
+                this.player.body.allowGravity = false
+                this.player.setVelocityY(-200)
+                monter = true
+                
+                setTimeout(() => {
+                    this.player.body.allowGravity = true
+                    this.player.setVelocityY(0)
+                    monter = false
+                }, 2000);
+            }
+        }
+        if (this.player.body.blocked.up && monter == true) {
+            this.player.body.allowGravity = true
+            this.player.setVelocityY(0)
         }
 
         // OUVRIR PORTE
@@ -208,10 +236,24 @@ class scene1 extends Phaser.Scene {
         }
 
 
-        // OBTENIR CAPACITE FOURMI OUVRIERE
-        if (this.physics.overlap(this.player, this.fourmi_ouvriere)){
-            console.log("test")
-            this.add.text(this.fourmi_ouvriere.x, this.fourmi_ouvriere.y, "Appuie sur E pour me recruter", { fill: '#000000', fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif', fontSize: 30 }) 
+        // RECRUTER FOURMI OUVRIERE
+        if (this.physics.overlap(this.player, this.fourmi_ouvriere)) {
+            if (grimper == false) {
+                this.txt_ouvriere.setVisible(true)
+            }
+            if (this.clavier.E.isDown) {
+                this.txt_ouvriere.text = 'Tu as maintenant la capacité de grimper aux murs, tu pourras me retrouver en haut'
+
+                setTimeout(() => {
+                    grimper = true
+                    this.fourmi_ouvriere.x = 8 * 32
+                    this.fourmi_ouvriere.y = 0
+                    // TODO CAMERA FLASH EFFECT 
+                }, 2000);
+            }
+        }
+        else {
+            this.txt_ouvriere.setVisible(false)
         }
     }
 
