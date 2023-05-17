@@ -1,6 +1,9 @@
 var monter = false
 var grimper = false
 var surcorde = false
+var inInv = false
+var distanceX
+var distanceY
 class scene1 extends Phaser.Scene {
     constructor() {
         super('scene1');
@@ -21,6 +24,9 @@ class scene1 extends Phaser.Scene {
             { frameWidth: 41, frameHeight: 25 });
         this.load.image('boule', 'assets/boule.png');
         this.load.image("tileset", "assets/tileset.png");
+        this.load.image("inv", "assets/inv.png");
+        this.load.image("inv_left", "assets/inv_left.png");
+        this.load.image("inv_right", "assets/inv_right.png");
         this.load.image("corde", "assets/corde.png");
         this.load.image("plateforme", "assets/plateforme.png");
         this.load.tilemapTiledJSON("map", "assets/scene.json");
@@ -83,9 +89,9 @@ class scene1 extends Phaser.Scene {
 
         this.fourmi_ouvriere = this.physics.add.sprite(-5 * 32, 11 * 32, "fourmi_ouvriere")//.body.setAllowGravity(false).setImmovable(true)
 
-        this.boule = this.physics.add.sprite(4 * 32, -1*32, "boule").setCircle(32,0,0).setImmovable(true).setVelocityX(200)
+        this.boule = this.physics.add.sprite(4 * 32, -1 * 32, "boule").setCircle(32, 0, 0).setImmovable(true).setVelocityX(200)
 
-        this.txt_ouvriere = this.add.text(this.fourmi_ouvriere.x, this.fourmi_ouvriere.y-36, "Appuie sur E pour me recruter", { fill: '#ffffff', fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif', fontSize: 32 }).setScale(0.5)
+        this.txt_ouvriere = this.add.text(this.fourmi_ouvriere.x, this.fourmi_ouvriere.y - 36, "Appuie sur E pour me recruter", { fill: '#ffffff', fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif', fontSize: 32 }).setScale(0.5)
 
 
         this.solide.setCollisionByExclusion(-1, true);
@@ -130,167 +136,200 @@ class scene1 extends Phaser.Scene {
         this.cameras.main.zoom = 2;
         this.cameras.main.startFollow(this.player);
 
-        this.clavier = this.input.keyboard.addKeys('Z,Q,D,S,I,E,A,SPACE');
+        this.clavier = this.input.keyboard.addKeys('Z,Q,D,S,I,E,A,X,SPACE');
         this.cursors = this.input.keyboard.createCursorKeys();
 
+        this.image = this.add.image(652, 364, "inv")
+        this.image.setScrollFactor(0).setScale(0.5).setVisible(false)
+
+        this.fleche_left = this.add.image(450, 350, "inv_left")
+        this.fleche_left.setScrollFactor(0).setScale(0.5).setVisible(false)
+        this.fleche_left.setInteractive()
+
+        this.fleche_left.on('pointerdown', this.onImageClicked, this);
+
+
+       // this.cameras.main.centerOn(this.player.x, this.player.y)
 
     }
 
 
-    update() {
-        // DEPLACEMENT
-        if (surcorde == false) {
-            if (this.cursors.right.isDown) {
-                this.player.setVelocityX(300)
-                this.player.anims.play("right", true)
-            }
-            else if (this.cursors.left.isDown) {
-                this.player.setVelocityX(-300)
-                this.player.anims.play("left", true)
-            }
-            else {
-                this.player.setVelocityX(0)
-                this.player.anims.stop()
-            }
-            if (this.cursors.up.isDown && this.player.body.onFloor()) {
-                this.player.setVelocityY(-300)
+    update() { 
+        if (Phaser.Input.Keyboard.JustDown(this.clavier.I)) {
+            if (!inInv) {
+                console.log("Ca entre");
+                inInv = true;
+                this.image.setVisible(true);
+                this.fleche_left.setVisible(true);
+
+            } else {
+                console.log("Ca sort");
+                inInv = false;
+                this.image.setVisible(false);
+                this.fleche_left.setVisible(false);
             }
         }
+        if(inInv){
 
-        // MECANIQUE GRIMPER
-        if (grimper == true) {
-            this.collide_plateforme.active = false
-            if (this.player.body.blocked.left) {
-                this.player.body.allowGravity = false
-                this.player.setVelocityY(0)
-                this.player.angle = 90
-                if (this.cursors.up.isDown) {
-                    this.player.setVelocityY(-100)
-                    this.player.anims.play("left", true)
-                }
-                if (this.cursors.down.isDown) {
-                    this.player.setVelocityY(100)
-                    this.player.anims.play("right", true)
-                }
-            }
-            else if (this.player.body.blocked.right) {
-                this.player.body.allowGravity = false
-                this.player.setVelocityY(0)
-                this.player.angle = -90
-                if (this.cursors.up.isDown) {
-                    this.player.setVelocityY(-100)
-                    this.player.anims.play("right", true)
-                }
-                if (this.cursors.down.isDown) {
-                    this.player.setVelocityY(100)
-                    this.player.anims.play("left", true)
-                }
-            }
-            else {
-                if (surcorde == false && monter == false) {
-                    this.player.body.allowGravity = true
-                }
-                this.player.angle = 0
-            }
         }
-        else{this.collide_plateforme.active = true}
-        //GRIMPER CORDE
 
-        if (this.physics.overlap(this.player, this.grpcorde)) {
-            console.log("overlap")
-            if (this.clavier.E.isDown && surcorde == false) {
-                this.player.body.allowGravity = false
-                surcorde = true
-                console.log("sur la corde")
+        if (!inInv) {
+            // DEPLACEMENT
+            if (surcorde == false) {
+                if (this.cursors.right.isDown) {
+                    this.player.setVelocityX(300)
+                    this.player.anims.play("right", true)
+                }
+                else if (this.cursors.left.isDown) {
+                    this.player.setVelocityX(-300)
+                    this.player.anims.play("left", true)
+                }
+                else {
+                    this.player.setVelocityX(0)
+                    this.player.anims.stop()
+                }
+                if (this.cursors.up.isDown && this.player.body.onFloor()) {
+                    this.player.setVelocityY(-300)
+                }
+            }
+
+            // MECANIQUE GRIMPER
+            if (grimper == true) {
                 this.collide_plateforme.active = false
-
-            }
-        }
-        else {
-            if (grimper == true && surcorde == true) {
-                this.player.body.allowGravity = true
-                this.collide_plateforme.active = true
-            }
-            surcorde = false
-            if (grimper == false && monter == false) {
-                this.player.body.allowGravity = true
-                this.collide_plateforme.active = true
-            }
-            console.log("pas sur corde")
-        }
-
-        if (surcorde == true) {
-
-            this.player.setVelocityY(0)
-            if (this.cursors.up.isDown) {
-                this.player.setVelocityY(-100)
-            }
-            if (this.cursors.down.isDown) {
-                this.player.setVelocityY(100)
-            }
-            if (this.clavier.SPACE.isDown) {
-                console.log("sortie")
-                surcorde = false
-                this.player.body.allowGravity = true
-                this.collide_plateforme.active = true
-            }
-        }
-
-        // MONTER 
-        if (this.physics.overlap(this.player, this.grpmonter) && monter == false) {
-            if (this.clavier.SPACE.isDown) {
-                this.player.body.allowGravity = false
-                this.player.setVelocityY(-200)
-                monter = true
-
-                setTimeout(() => {
-                    this.player.body.allowGravity = true
+                if (this.player.body.blocked.left) {
+                    this.player.body.allowGravity = false
                     this.player.setVelocityY(0)
-                    monter = false
-                }, 2000);
+                    this.player.angle = 90
+                    if (this.cursors.up.isDown) {
+                        this.player.setVelocityY(-100)
+                        this.player.anims.play("left", true)
+                    }
+                    if (this.cursors.down.isDown) {
+                        this.player.setVelocityY(100)
+                        this.player.anims.play("right", true)
+                    }
+                }
+                else if (this.player.body.blocked.right) {
+                    this.player.body.allowGravity = false
+                    this.player.setVelocityY(0)
+                    this.player.angle = -90
+                    if (this.cursors.up.isDown) {
+                        this.player.setVelocityY(-100)
+                        this.player.anims.play("right", true)
+                    }
+                    if (this.cursors.down.isDown) {
+                        this.player.setVelocityY(100)
+                        this.player.anims.play("left", true)
+                    }
+                }
+                else {
+                    if (surcorde == false && monter == false) {
+                        this.player.body.allowGravity = true
+                    }
+                    this.player.angle = 0
+                }
             }
-        }
-        if (this.player.body.blocked.up && monter == true) {
-            this.player.body.allowGravity = true
-            this.player.setVelocityY(0)
-        }
+            else { this.collide_plateforme.active = true }
+            //GRIMPER CORDE
 
-        // OUVRIR PORTE
-        if (this.porte_unlock == true) {
-            this.collide_porte.active = false
-        }
+            if (this.physics.overlap(this.player, this.grpcorde)) {
+                console.log("overlap")
+                if (this.clavier.E.isDown && surcorde == false) {
+                    this.player.body.allowGravity = false
+                    surcorde = true
 
+                    this.collide_plateforme.active = false
 
-        // RECRUTER FOURMI OUVRIERE
-        if(this.player.x>this.fourmi_ouvriere.x){
-            this.fourmi_ouvriere.anims.play("ouvriere_right")
-        }
-        else {
-            this.fourmi_ouvriere.anims.play("ouvriere_left")
-        }
-
-        if (this.physics.overlap(this.player, this.fourmi_ouvriere)) {
-            if (grimper == false) {
-                this.txt_ouvriere.setVisible(true)
+                }
             }
-            if (this.clavier.E.isDown) {
-                this.txt_ouvriere.text = 'Tu as maintenant la capacité de grimper aux murs, tu pourras me retrouver en haut'
+            else {
+                if (grimper == true && surcorde == true) {
+                    this.player.body.allowGravity = true
+                    this.collide_plateforme.active = true
+                }
+                surcorde = false
+                if (grimper == false && monter == false) {
+                    this.player.body.allowGravity = true
+                    this.collide_plateforme.active = true
+                }
 
-                setTimeout(() => {
-                    grimper = true
-                    this.fourmi_ouvriere.x = 8 * 32
-                    this.fourmi_ouvriere.y = 0
-                    // TODO CAMERA FLASH EFFECT 
-                }, 2000);
             }
-        }
-        else {
-            this.txt_ouvriere.setVisible(false)
+
+            if (surcorde == true) {
+
+                this.player.setVelocityY(0)
+                if (this.cursors.up.isDown) {
+                    this.player.setVelocityY(-100)
+                }
+                if (this.cursors.down.isDown) {
+                    this.player.setVelocityY(100)
+                }
+                if (this.clavier.SPACE.isDown) {
+                    console.log("sortie")
+                    surcorde = false
+                    this.player.body.allowGravity = true
+                    this.collide_plateforme.active = true
+                }
+            }
+
+            // MONTER 
+            if (this.physics.overlap(this.player, this.grpmonter) && monter == false) {
+                if (this.clavier.SPACE.isDown) {
+                    this.player.body.allowGravity = false
+                    this.player.setVelocityY(-200)
+                    monter = true
+
+                    setTimeout(() => {
+                        this.player.body.allowGravity = true
+                        this.player.setVelocityY(0)
+                        monter = false
+                    }, 2000);
+                }
+            }
+            if (this.player.body.blocked.up && monter == true) {
+                this.player.body.allowGravity = true
+                this.player.setVelocityY(0)
+            }
+
+            // OUVRIR PORTE
+            if (this.porte_unlock == true) {
+                this.collide_porte.active = false
+            }
+
+
+            // RECRUTER FOURMI OUVRIERE
+            if (this.player.x > this.fourmi_ouvriere.x) {
+                this.fourmi_ouvriere.anims.play("ouvriere_right")
+            }
+            else {
+                this.fourmi_ouvriere.anims.play("ouvriere_left")
+            }
+
+            if (this.physics.overlap(this.player, this.fourmi_ouvriere)) {
+                if (grimper == false) {
+                    this.txt_ouvriere.setVisible(true)
+                }
+                if (this.clavier.E.isDown) {
+                    this.txt_ouvriere.text = 'Tu as maintenant la capacité de grimper aux murs, tu pourras me retrouver en haut'
+
+                    setTimeout(() => {
+                        grimper = true
+                        this.fourmi_ouvriere.x = 8 * 32
+                        this.fourmi_ouvriere.y = 0
+                        // TODO CAMERA FLASH EFFECT 
+                    }, 2000);
+                }
+            }
+            else {
+                this.txt_ouvriere.setVisible(false)
+            }
         }
     }
 
 
-
+    onImageClicked() {
+        console.log("ouais")
+    }
     // OUVRIR PORTE 
     getclef() {
         this.porte_unlock = true
