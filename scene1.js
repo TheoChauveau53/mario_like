@@ -2,12 +2,14 @@ var monter = false
 var grimper = false
 var surcorde = false
 var inInv = false
+var HP = 10
 var distanceX
 var distanceY
 class scene1 extends Phaser.Scene {
     constructor() {
         super('scene1');
         this.porte_unlock = false
+        this.invincible = false
     }
 
     init(data) {
@@ -79,6 +81,8 @@ class scene1 extends Phaser.Scene {
         this.monter.objects.forEach(coord => {
             this.grpmonter.create(coord.x + 16, coord.y).setVisible(false)
         });
+        this.grpboss = this.physics.add.group({ immovable: true })
+        this.grpboss.create(-8 * 32, 38 * 32, "boss")
 
         if (this.spawnx && this.spawny) {
             this.player = this.physics.add.sprite(this.spawnx, this.spawny, "fourmi");
@@ -98,6 +102,9 @@ class scene1 extends Phaser.Scene {
         this.porte.setCollisionByExclusion(-1, true);
         this.clef.setCollisionByExclusion(-1, true);
         this.physics.add.collider(this.boule, this.solide);
+        this.physics.add.collider(this.grpboss, this.boule);
+        this.physics.add.collider(this.grpboss, this.solide);
+        this.physics.add.collider(this.grpboss, this.player, this.damage,);
         this.physics.add.collider(this.player, this.boule);
         this.physics.add.collider(this.player, this.solide);
         this.physics.add.collider(this.fourmi_ouvriere, this.solide); // TODO
@@ -149,12 +156,13 @@ class scene1 extends Phaser.Scene {
         this.fleche_left.on('pointerdown', this.onImageClicked, this);
 
 
-       // this.cameras.main.centerOn(this.player.x, this.player.y)
+        // this.cameras.main.centerOn(this.player.x, this.player.y)
 
     }
 
 
-    update() { 
+    update() {
+        this.boule.setVelocityX(200)
         if (Phaser.Input.Keyboard.JustDown(this.clavier.I)) {
             if (!inInv) {
                 console.log("Ca entre");
@@ -169,11 +177,17 @@ class scene1 extends Phaser.Scene {
                 this.fleche_left.setVisible(false);
             }
         }
-        if(inInv){
+        if (inInv) {
 
         }
 
         if (!inInv) {
+            if ((Phaser.Input.Keyboard.JustDown(this.cursors.down))) {
+                this.bas = true
+            }
+            if ((Phaser.Input.Keyboard.JustUp(this.cursors.down))) {
+                this.bas = false
+            }
             // DEPLACEMENT
             if (surcorde == false) {
                 if (this.cursors.right.isDown) {
@@ -184,7 +198,8 @@ class scene1 extends Phaser.Scene {
                     this.player.setVelocityX(-300)
                     this.player.anims.play("left", true)
                 }
-                else {
+                else if(this.physics.overlap(this.boule,this.player)==false){
+                    console.log("arret")
                     this.player.setVelocityX(0)
                     this.player.anims.stop()
                 }
@@ -195,7 +210,6 @@ class scene1 extends Phaser.Scene {
 
             // MECANIQUE GRIMPER
             if (grimper == true) {
-                this.collide_plateforme.active = false
                 if (this.player.body.blocked.left) {
                     this.player.body.allowGravity = false
                     this.player.setVelocityY(0)
@@ -229,7 +243,6 @@ class scene1 extends Phaser.Scene {
                     this.player.angle = 0
                 }
             }
-            else { this.collide_plateforme.active = true }
             //GRIMPER CORDE
 
             if (this.physics.overlap(this.player, this.grpcorde)) {
@@ -323,10 +336,25 @@ class scene1 extends Phaser.Scene {
             else {
                 this.txt_ouvriere.setVisible(false)
             }
+
         }
+
     }
 
-
+    damage() {
+        if (this.invincible == false) {
+            console.log("tu prends des degats")
+            HP -= 1
+            this.invincible = true
+            setTimeout(() => {
+                this.invincible = false
+            }, 1000);
+        }
+        if (HP <= 0) {
+            console.log("t'es mort")
+            this.scene.start("mort")
+        }
+    }
     onImageClicked() {
         console.log("ouais")
     }
