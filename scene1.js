@@ -104,7 +104,7 @@ class scene1 extends Phaser.Scene {
         this.physics.add.collider(this.boule, this.solide);
         this.physics.add.collider(this.grpboss, this.boule);
         this.physics.add.collider(this.grpboss, this.solide);
-        this.physics.add.collider(this.grpboss, this.player, this.damage,);
+        this.physics.add.collider(this.grpboss, this.player, this.damage, null, this);
         this.physics.add.collider(this.player, this.boule);
         this.physics.add.collider(this.player, this.solide);
         this.physics.add.collider(this.fourmi_ouvriere, this.solide); // TODO
@@ -157,11 +157,13 @@ class scene1 extends Phaser.Scene {
 
 
         // this.cameras.main.centerOn(this.player.x, this.player.y)
-
+        //this.cameras.main.shake(200, 0.0005)
+        
     }
 
 
     update() {
+        
         this.boule.setVelocityX(200)
         if (Phaser.Input.Keyboard.JustDown(this.clavier.I)) {
             if (!inInv) {
@@ -198,7 +200,7 @@ class scene1 extends Phaser.Scene {
                     this.player.setVelocityX(-300)
                     this.player.anims.play("left", true)
                 }
-                else if(this.physics.overlap(this.boule,this.player)==false){
+                else{
                     console.log("arret")
                     this.player.setVelocityX(0)
                     this.player.anims.stop()
