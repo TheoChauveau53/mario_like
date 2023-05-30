@@ -10,6 +10,7 @@ class scene1 extends Phaser.Scene {
         super('scene1');
         this.porte_unlock = false
         this.invincible = false
+        this.changedir = false
     }
 
     init(data) {
@@ -26,10 +27,12 @@ class scene1 extends Phaser.Scene {
             { frameWidth: 41, frameHeight: 25 });
         this.load.image('boule', 'assets/boule.png');
         this.load.image("tileset", "assets/tileset.png");
+        this.load.image("background", "assets/background_herbe.png");
         this.load.image("inv", "assets/inv.png");
         this.load.image("inv_left", "assets/inv_left.png");
         this.load.image("inv_right", "assets/inv_right.png");
         this.load.image("corde", "assets/corde.png");
+        this.load.image("invisible", "assets/invisible.png");
         this.load.image("plateforme", "assets/plateforme.png");
         this.load.tilemapTiledJSON("map", "assets/scene.json");
         this.load.spritesheet('fourmi', 'assets/fourmi.png',
@@ -37,12 +40,18 @@ class scene1 extends Phaser.Scene {
     }
 
     create() {
+        
 
         this.map = this.add.tilemap("map");
         this.tileset = this.map.addTilesetImage(
             "tileset",
             "tileset"
         );
+        this.background_ciel = this.map.createLayer(
+            "background_ciel",
+            this.tileset
+        );
+        this.add.image(896/2,448/2,"background").setScrollFactor(0.1)
         this.background = this.map.createLayer(
             "background",
             this.tileset
@@ -67,13 +76,13 @@ class scene1 extends Phaser.Scene {
         this.grpcorde = this.physics.add.group({ immovable: true, allowGravity: false })
         this.corde = this.map.getObjectLayer("corde");
         this.corde.objects.forEach(coord => {
-            this.grpcorde.create(coord.x + 16, coord.y, "corde");
+            this.grpcorde.create(coord.x + 16, coord.y-16, "corde");
         });
 
         this.grpplateforme = this.physics.add.group({ immovable: true, allowGravity: false })
         this.plateforme = this.map.getObjectLayer("plateforme");
         this.plateforme.objects.forEach(coord => {
-            this.grpplateforme.create(coord.x + 16, coord.y, "plateforme");
+            this.grpplateforme.create(coord.x + 16, coord.y-16, "plateforme");
         });
 
         this.grpmonter = this.physics.add.group({ immovable: true, allowGravity: false })
@@ -81,8 +90,27 @@ class scene1 extends Phaser.Scene {
         this.monter.objects.forEach(coord => {
             this.grpmonter.create(coord.x + 16, coord.y).setVisible(false)
         });
+
+        this.grphitbox_ennemi = this.physics.add.group({ immovable: true, allowGravity: false })
+        this.hitbox_ennemi = this.map.getObjectLayer("hitbox_ennemi");
+        this.hitbox_ennemi.objects.forEach(coord => {
+            this.grphitbox_ennemi.create(coord.x + 16, coord.y-16, "invisible");
+        });
+
+        this.grpennemi = this.physics.add.group({ immovable: true, allowGravity: false })
+        this.ennemi = this.map.getObjectLayer("ennemi");
+        this.ennemi.objects.forEach(coord => {
+            this.grpennemi.create(coord.x + 16, coord.y-16, "");
+        });
+        this.grpennemi.setVelocityX(20)
+        this.grpennemi.getChildren().forEach( ennemi => {
+            ennemi.changedir = false
+        })
+
+        this.physics.add.collider(this.grpennemi, this.grphitbox_ennemi, this.ChangeDirection, null, this)
+
         this.grpboss = this.physics.add.group({ immovable: true })
-        this.grpboss.create(-8 * 32, 38 * 32, "boss")
+        this.grpboss.create(-8 * 32, 38 * 32, "boss").setsize
 
         if (this.spawnx && this.spawny) {
             this.player = this.physics.add.sprite(this.spawnx, this.spawny, "fourmi");
@@ -158,12 +186,12 @@ class scene1 extends Phaser.Scene {
 
         // this.cameras.main.centerOn(this.player.x, this.player.y)
         //this.cameras.main.shake(200, 0.0005)
-        
+
     }
 
 
     update() {
-        
+
         this.boule.setVelocityX(200)
         if (Phaser.Input.Keyboard.JustDown(this.clavier.I)) {
             if (!inInv) {
@@ -200,8 +228,8 @@ class scene1 extends Phaser.Scene {
                     this.player.setVelocityX(-300)
                     this.player.anims.play("left", true)
                 }
-                else{
-                    console.log("arret")
+                else {
+                    
                     this.player.setVelocityX(0)
                     this.player.anims.stop()
                 }
@@ -340,7 +368,31 @@ class scene1 extends Phaser.Scene {
             }
 
         }
-
+        
+    }
+    ChangeDirection(ennemi, hitbox) {
+        if (ennemi.changedir == false) {
+            if (ennemi.body.velocity.x>0) {
+                ennemi.setVelocityX(0)
+                ennemi.setVelocityY(100)
+            }
+            else if (ennemi.body.velocity.x<0) {
+                ennemi.setVelocityX(0)
+                ennemi.setVelocityY(-100)
+            }
+            else if (ennemi.body.velocity.y<0) {
+                ennemi.setVelocityX(100)
+                ennemi.setVelocityY(0)
+            }
+            else if (ennemi.body.velocity.y>0) {
+                ennemi.setVelocityX(-100)
+                ennemi.setVelocityY(0)
+            }
+            ennemi.changedir = true
+            setTimeout(() => {
+                ennemi.changedir = false
+            }, 800);
+        }
     }
 
     damage() {
@@ -348,8 +400,10 @@ class scene1 extends Phaser.Scene {
             console.log("tu prends des degats")
             HP -= 1
             this.invincible = true
+            this.player.setTint("#ff0000")
             setTimeout(() => {
                 this.invincible = false
+                this.player.clearTint()
             }, 1000);
         }
         if (HP <= 0) {
