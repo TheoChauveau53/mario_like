@@ -2,7 +2,7 @@ var monter = false
 var grimper = false
 var surcorde = false
 var inInv = false
-var HP = 10
+var HP = 4
 var distanceX
 var distanceY
 class scene1 extends Phaser.Scene {
@@ -11,6 +11,7 @@ class scene1 extends Phaser.Scene {
         this.porte_unlock = false
         this.invincible = false
         this.changedir = false
+        
     }
 
     init(data) {
@@ -32,15 +33,18 @@ class scene1 extends Phaser.Scene {
         this.load.image("inv_left", "assets/inv_left.png");
         this.load.image("inv_right", "assets/inv_right.png");
         this.load.image("corde", "assets/corde.png");
+        this.load.image("piege", "assets/piege.png");
         this.load.image("invisible", "assets/invisible.png");
         this.load.image("plateforme", "assets/plateforme.png");
         this.load.tilemapTiledJSON("map", "assets/scene.json");
         this.load.spritesheet('fourmi', 'assets/fourmi.png',
             { frameWidth: 41, frameHeight: 25 });
+        this.load.spritesheet('vie', 'assets/vie.png',
+            { frameWidth: 64, frameHeight: 14 });
     }
 
     create() {
-        
+
 
         this.map = this.add.tilemap("map");
         this.tileset = this.map.addTilesetImage(
@@ -51,7 +55,7 @@ class scene1 extends Phaser.Scene {
             "background_ciel",
             this.tileset
         );
-        this.add.image(896/2,448/2,"background").setScrollFactor(0.1)
+        this.add.image(896 / 2, 448 / 2, "background").setScrollFactor(0.1)
         this.background = this.map.createLayer(
             "background",
             this.tileset
@@ -73,16 +77,22 @@ class scene1 extends Phaser.Scene {
             this.tileset
         );
 
+        this.grppiege = this.physics.add.group({ immovable: true, allowGravity: false })
+        this.piege = this.map.getObjectLayer("piege");
+        this.piege.objects.forEach(coord => {
+            this.grppiege.create(coord.x + 16, coord.y - 18, "piege");
+        });
+
         this.grpcorde = this.physics.add.group({ immovable: true, allowGravity: false })
         this.corde = this.map.getObjectLayer("corde");
         this.corde.objects.forEach(coord => {
-            this.grpcorde.create(coord.x + 16, coord.y-16, "corde");
+            this.grpcorde.create(coord.x + 16, coord.y - 16, "corde");
         });
 
         this.grpplateforme = this.physics.add.group({ immovable: true, allowGravity: false })
         this.plateforme = this.map.getObjectLayer("plateforme");
         this.plateforme.objects.forEach(coord => {
-            this.grpplateforme.create(coord.x + 16, coord.y-16, "plateforme");
+            this.grpplateforme.create(coord.x + 16, coord.y - 16, "plateforme");
         });
 
         this.grpmonter = this.physics.add.group({ immovable: true, allowGravity: false })
@@ -94,16 +104,16 @@ class scene1 extends Phaser.Scene {
         this.grphitbox_ennemi = this.physics.add.group({ immovable: true, allowGravity: false })
         this.hitbox_ennemi = this.map.getObjectLayer("hitbox_ennemi");
         this.hitbox_ennemi.objects.forEach(coord => {
-            this.grphitbox_ennemi.create(coord.x + 16, coord.y-16, "invisible");
+            this.grphitbox_ennemi.create(coord.x + 16, coord.y - 16, "invisible");
         });
 
         this.grpennemi = this.physics.add.group({ immovable: true, allowGravity: false })
         this.ennemi = this.map.getObjectLayer("ennemi");
         this.ennemi.objects.forEach(coord => {
-            this.grpennemi.create(coord.x + 16, coord.y-16, "");
+            this.grpennemi.create(coord.x + 16, coord.y - 16, "");
         });
         this.grpennemi.setVelocityX(20)
-        this.grpennemi.getChildren().forEach( ennemi => {
+        this.grpennemi.getChildren().forEach(ennemi => {
             ennemi.changedir = false
         })
 
@@ -124,17 +134,21 @@ class scene1 extends Phaser.Scene {
         this.boule = this.physics.add.sprite(4 * 32, -1 * 32, "boule").setCircle(32, 0, 0).setImmovable(true).setVelocityX(200)
 
         this.txt_ouvriere = this.add.text(this.fourmi_ouvriere.x, this.fourmi_ouvriere.y - 36, "Appuie sur E pour me recruter", { fill: '#ffffff', fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif', fontSize: 32 }).setScale(0.5)
+        this.vie = this.add.sprite(257, 120, "vie").setScrollFactor(0)
 
 
         this.solide.setCollisionByExclusion(-1, true);
         this.porte.setCollisionByExclusion(-1, true);
         this.clef.setCollisionByExclusion(-1, true);
+
         this.physics.add.collider(this.boule, this.solide);
         this.physics.add.collider(this.grpboss, this.boule);
         this.physics.add.collider(this.grpboss, this.solide);
         this.physics.add.collider(this.grpboss, this.player, this.damage, null, this);
         this.physics.add.collider(this.player, this.boule);
         this.physics.add.collider(this.player, this.solide);
+        this.physics.add.overlap(this.player, this.grppiege, this.touchepiege, null, this);
+        this.physics.add.collider(this.player, this.grpennemi, this.damage, null, this)
         this.physics.add.collider(this.fourmi_ouvriere, this.solide); // TODO
         this.collide_porte = this.physics.add.collider(this.player, this.porte);
         this.physics.add.overlap(this.player, this.clef, this.getclef, null, this);
@@ -166,7 +180,31 @@ class scene1 extends Phaser.Scene {
             frameRate: 2,
             repeat: -1
         });
-
+        // barre de vie
+        this.anims.create({
+            key: 'vie4',
+            frames: this.anims.generateFrameNumbers('vie', { start: 0, end: 0 }),
+            frameRate: 2,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'vie3',
+            frames: this.anims.generateFrameNumbers('vie', { start: 1, end: 1 }),
+            frameRate: 2,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'vie2',
+            frames: this.anims.generateFrameNumbers('vie', { start: 2, end: 3 }),
+            frameRate: 2,
+            repeat: -1
+        });
+        this.anims.create({
+            key: 'vie1',
+            frames: this.anims.generateFrameNumbers('vie', { start: 3, end: 3 }),
+            frameRate: 2,
+            repeat: -1
+        });
 
         this.cameras.main.zoom = 2;
         this.cameras.main.startFollow(this.player);
@@ -187,10 +225,26 @@ class scene1 extends Phaser.Scene {
         // this.cameras.main.centerOn(this.player.x, this.player.y)
         //this.cameras.main.shake(200, 0.0005)
 
+
+
+
+
     }
 
 
     update() {
+        if (HP == 4) {
+            this.vie.anims.play("vie4")
+        }
+        if (HP == 3) {
+            this.vie.anims.play("vie3")
+        }
+        if (HP == 2) {
+            this.vie.anims.play("vie2")
+        }
+        if (HP == 1) {
+            this.vie.anims.play("vie1")
+        }
 
         this.boule.setVelocityX(200)
         if (Phaser.Input.Keyboard.JustDown(this.clavier.I)) {
@@ -229,12 +283,20 @@ class scene1 extends Phaser.Scene {
                     this.player.anims.play("left", true)
                 }
                 else {
-                    
+
                     this.player.setVelocityX(0)
                     this.player.anims.stop()
                 }
                 if (this.cursors.up.isDown && this.player.body.onFloor()) {
-                    this.player.setVelocityY(-300)
+                    this.player.setVelocityY(-400)
+                }
+                if (this.cursors.down.isDown) {
+                    if (this.player.body.onFloor()) {
+                        this.collide_plateforme.active = false
+                    }
+                    else {
+                        this.player.setVelocityY(300)
+                    }
                 }
             }
 
@@ -368,23 +430,23 @@ class scene1 extends Phaser.Scene {
             }
 
         }
-        
+
     }
     ChangeDirection(ennemi, hitbox) {
         if (ennemi.changedir == false) {
-            if (ennemi.body.velocity.x>0) {
+            if (ennemi.body.velocity.x > 0) {
                 ennemi.setVelocityX(0)
                 ennemi.setVelocityY(100)
             }
-            else if (ennemi.body.velocity.x<0) {
+            else if (ennemi.body.velocity.x < 0) {
                 ennemi.setVelocityX(0)
                 ennemi.setVelocityY(-100)
             }
-            else if (ennemi.body.velocity.y<0) {
+            else if (ennemi.body.velocity.y < 0) {
                 ennemi.setVelocityX(100)
                 ennemi.setVelocityY(0)
             }
-            else if (ennemi.body.velocity.y>0) {
+            else if (ennemi.body.velocity.y > 0) {
                 ennemi.setVelocityX(-100)
                 ennemi.setVelocityY(0)
             }
@@ -400,7 +462,7 @@ class scene1 extends Phaser.Scene {
             console.log("tu prends des degats")
             HP -= 1
             this.invincible = true
-            this.player.setTint("#ff0000")
+            this.player.setTint("#FFB6C1")
             setTimeout(() => {
                 this.invincible = false
                 this.player.clearTint()
@@ -418,4 +480,22 @@ class scene1 extends Phaser.Scene {
     getclef() {
         this.porte_unlock = true
     }
+    touchepiege() {
+        if (this.invincible == false) {
+            console.log("tu prends des degats(piege)")
+            HP -= 1
+            this.invincible = true
+            this.player.setTint("#FFB6C1")
+            setTimeout(() => {
+                this.invincible = false
+                this.player.clearTint()
+            }, 200);
+        }
+
+        if (HP <= 0) {
+            console.log("t'es mort(piege)")
+            this.scene.start("mort")
+        }
+    }
+    
 }
