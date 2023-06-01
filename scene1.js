@@ -117,6 +117,12 @@ class scene1 extends Phaser.Scene {
             ennemi.changedir = false
         })
 
+        this.grpennemivolant = this.physics.add.group({ immovable: true, allowGravity: false })
+        this.ennemivolant = this.map.getObjectLayer("ennemi volant");
+        this.ennemivolant.objects.forEach(coord => {
+            this.grpennemivolant.create(coord.x + 16, coord.y - 16, "");
+        });
+
         this.physics.add.collider(this.grpennemi, this.grphitbox_ennemi, this.ChangeDirection, null, this)
 
         this.grpboss = this.physics.add.group({ immovable: true })
