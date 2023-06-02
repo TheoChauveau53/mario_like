@@ -11,7 +11,7 @@ class scene1 extends Phaser.Scene {
         this.porte_unlock = false
         this.invincible = false
         this.changedir = false
-        
+
     }
 
     init(data) {
@@ -27,6 +27,7 @@ class scene1 extends Phaser.Scene {
         this.load.spritesheet('fourmi_ouvriere', 'assets/fourmi_ouvriere.png',
             { frameWidth: 41, frameHeight: 25 });
         this.load.image('boule', 'assets/boule.png');
+        this.load.image('abeille', 'assets/abeille.png');
         this.load.image("tileset", "assets/tileset.png");
         this.load.image("background", "assets/background_herbe.png");
         this.load.image("inv", "assets/inv.png");
@@ -36,6 +37,7 @@ class scene1 extends Phaser.Scene {
         this.load.image("piege", "assets/piege.png");
         this.load.image("invisible", "assets/invisible.png");
         this.load.image("plateforme", "assets/plateforme.png");
+        this.load.image("fleche_rouge", "assets/fleche.png");
         this.load.tilemapTiledJSON("map", "assets/scene.json");
         this.load.spritesheet('fourmi', 'assets/fourmi.png',
             { frameWidth: 41, frameHeight: 25 });
@@ -120,7 +122,7 @@ class scene1 extends Phaser.Scene {
         this.grpennemivolant = this.physics.add.group({ immovable: true, allowGravity: false })
         this.ennemivolant = this.map.getObjectLayer("ennemi volant");
         this.ennemivolant.objects.forEach(coord => {
-            this.grpennemivolant.create(coord.x + 16, coord.y - 16, "");
+            this.grpennemivolant.create(coord.x + 16, coord.y - 16, "abeille");
         });
 
         this.physics.add.collider(this.grpennemi, this.grphitbox_ennemi, this.ChangeDirection, null, this)
@@ -151,6 +153,10 @@ class scene1 extends Phaser.Scene {
         this.physics.add.collider(this.grpboss, this.boule);
         this.physics.add.collider(this.grpboss, this.solide);
         this.physics.add.collider(this.grpboss, this.player, this.damage, null, this);
+        //ENNEMI VOLANT
+        this.physics.add.collider(this.grpennemivolant, this.solide);
+        this.physics.add.collider(this.grpennemivolant, this.player, this.damage, null, this);
+
         this.physics.add.collider(this.player, this.boule);
         this.physics.add.collider(this.player, this.solide);
         this.physics.add.overlap(this.player, this.grppiege, this.touchepiege, null, this);
@@ -215,30 +221,47 @@ class scene1 extends Phaser.Scene {
         this.cameras.main.zoom = 2;
         this.cameras.main.startFollow(this.player);
 
-        this.clavier = this.input.keyboard.addKeys('Z,Q,D,S,I,E,A,X,SPACE');
+        this.clavier = this.input.keyboard.addKeys('Z,Q,D,S,I,E,A,X,SPACE,TAB');
         this.cursors = this.input.keyboard.createCursorKeys();
 
+        // INVENTAIRE
         this.image = this.add.image(652, 364, "inv")
         this.image.setScrollFactor(0).setScale(0.5).setVisible(false)
 
         this.fleche_left = this.add.image(450, 350, "inv_left")
         this.fleche_left.setScrollFactor(0).setScale(0.5).setVisible(false)
         this.fleche_left.setInteractive()
-
         this.fleche_left.on('pointerdown', this.onImageClicked, this);
 
 
-        // this.cameras.main.centerOn(this.player.x, this.player.y)
+        this.cameramap = this.cameras.add().setVisible(false)
+        this.cameramap.zoom = 0.1
+
+        this.fleche_rouge = this.add.sprite(this.player.x, this.player.y, "fleche_rouge").setScale(3)
+        this.cameras.main.ignore(this.fleche_rouge)
+        this.cameramap.ignore(this.vie)
+        //this.cameras.main.centerOn(this.player.x, this.player.y)
         //this.cameras.main.shake(200, 0.0005)
-
-
-
-
-
     }
 
 
     update() {
+        if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.grpennemivolant.getChildren()[0].x, this.grpennemivolant.getChildren()[0].y) < 300) {
+            this.grpennemivolant.getChildren()[0].setVelocity((this.player.x - this.grpennemivolant.getChildren()[0].x)/Phaser.Math.Distance.Between(this.player.x, this.player.y, this.grpennemivolant.getChildren()[0].x, this.grpennemivolant.getChildren()[0].y) , (this.player.y, this.grpennemivolant.getChildren()[0].y)/(Phaser.Math.Distance.Between(this.player.x, this.player.y, this.grpennemivolant.getChildren()[0].x, this.grpennemivolant.getChildren()[0].y)))
+        }
+        else{ this.grpennemivolant.getChildren()[0].setVelocity(0,0)}
+        this.fleche_rouge.x = this.player.x
+        this.fleche_rouge.y = this.player.y - 60
+
+        if (Phaser.Input.Keyboard.JustDown(this.clavier.TAB)) {
+            this.cameramap.setVisible(true)
+
+        }
+        if (Phaser.Input.Keyboard.JustUp(this.clavier.TAB)) {
+            this.cameramap.setVisible(false)
+
+        }
+
         if (HP == 4) {
             this.vie.anims.play("vie4")
         }
@@ -503,5 +526,5 @@ class scene1 extends Phaser.Scene {
             this.scene.start("mort")
         }
     }
-    
+
 }
