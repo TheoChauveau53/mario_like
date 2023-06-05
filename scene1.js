@@ -1,5 +1,8 @@
-var monter = false
-var grimper = false
+var monter = false // "ASCENSEUR"
+var grimper = false  // UNLOCK CAPA GRIMPER
+var candash = false
+var planer = false
+
 var surcorde = false
 var inInv = false
 var HP = 4
@@ -28,6 +31,7 @@ class scene1 extends Phaser.Scene {
             { frameWidth: 41, frameHeight: 25 });
         this.load.image('boule', 'assets/boule.png');
         this.load.image('abeille', 'assets/abeille.png');
+        this.load.image("cloporte", "assets/ennemi_rampant.png");
         this.load.image("tileset", "assets/tileset.png");
         this.load.image("background", "assets/background_herbe.png");
         this.load.image("inv", "assets/inv.png");
@@ -112,20 +116,32 @@ class scene1 extends Phaser.Scene {
         this.grpennemi = this.physics.add.group({ immovable: true, allowGravity: false })
         this.ennemi = this.map.getObjectLayer("ennemi");
         this.ennemi.objects.forEach(coord => {
-            this.grpennemi.create(coord.x + 16, coord.y - 16, "");
+            this.grpennemi.create(coord.x + 16, coord.y - 16, "cloporte").setScale(0.5);
         });
         this.grpennemi.setVelocityX(20)
         this.grpennemi.getChildren().forEach(ennemi => {
             ennemi.changedir = false
         })
+        this.physics.add.collider(this.grpennemi, this.grphitbox_ennemi, this.ChangeDirection, null, this)
 
-        this.grpennemivolant = this.physics.add.group({ immovable: true, allowGravity: false })
-        this.ennemivolant = this.map.getObjectLayer("ennemi volant");
-        this.ennemivolant.objects.forEach(coord => {
-            this.grpennemivolant.create(coord.x + 16, coord.y - 16, "abeille");
+        this.grpsalleboss = this.physics.add.group({ immovable: true, allowGravity: false })
+        this.salleboss = this.map.getObjectLayer("salle_ennemi_boss");
+        this.salleboss.objects.forEach(coord => {
+            this.grpsalleboss.create(coord.x + 16, coord.y - 16, "invisible");
         });
 
-        this.physics.add.collider(this.grpennemi, this.grphitbox_ennemi, this.ChangeDirection, null, this)
+        this.grpennemivolant = this.physics.add.group({ immovable: false, allowGravity: false })
+        this.ennemivolant = this.map.getObjectLayer("ennemi volant");
+        this.ennemivolant.objects.forEach(coord => {
+            this.grpennemivolant.create(coord.x + 16, coord.y - 16, "abeille").setScale(0.5);
+        });
+        this.grpennemivolant.getChildren().forEach(ennemi => {
+            ennemi.spawnx = ennemi.x
+            ennemi.spawny = ennemi.y
+            //this.grpennemivolant.getChildren().forEach(ennemi2 => {this.physics.add.collider(ennemi, ennemi2)})
+        })
+        this.physics.add.collider(this.grpennemivolant)
+
 
         this.grpboss = this.physics.add.group({ immovable: true })
         this.grpboss.create(-8 * 32, 38 * 32, "boss").setsize
@@ -233,7 +249,7 @@ class scene1 extends Phaser.Scene {
         this.fleche_left.setInteractive()
         this.fleche_left.on('pointerdown', this.onImageClicked, this);
 
-
+        // CAMERA / MINI MAP
         this.cameramap = this.cameras.add().setVisible(false)
         this.cameramap.zoom = 0.1
 
@@ -246,10 +262,18 @@ class scene1 extends Phaser.Scene {
 
 
     update() {
-        if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.grpennemivolant.getChildren()[0].x, this.grpennemivolant.getChildren()[0].y) < 300) {
-            this.grpennemivolant.getChildren()[0].setVelocity((this.player.x - this.grpennemivolant.getChildren()[0].x)/Phaser.Math.Distance.Between(this.player.x, this.player.y, this.grpennemivolant.getChildren()[0].x, this.grpennemivolant.getChildren()[0].y) , (this.player.y, this.grpennemivolant.getChildren()[0].y)/(Phaser.Math.Distance.Between(this.player.x, this.player.y, this.grpennemivolant.getChildren()[0].x, this.grpennemivolant.getChildren()[0].y)))
+
+        if (this.physics.overlap(this.player, this.grpsalleboss)) {
+            console.log("salle boss")
+            this.grpennemivolant.getChildren().forEach(ennemi =>
+                ennemi.setVelocity(this.player.x - ennemi.x, this.player.y - ennemi.y))
         }
-        else{ this.grpennemivolant.getChildren()[0].setVelocity(0,0)}
+        else {
+            this.grpennemivolant.getChildren().forEach(ennemi =>
+                ennemi.setVelocity(ennemi.spawnx - ennemi.x, ennemi.spawny - ennemi.y))
+        }
+
+
         this.fleche_rouge.x = this.player.x
         this.fleche_rouge.y = this.player.y - 60
 
@@ -295,12 +319,6 @@ class scene1 extends Phaser.Scene {
         }
 
         if (!inInv) {
-            if ((Phaser.Input.Keyboard.JustDown(this.cursors.down))) {
-                this.bas = true
-            }
-            if ((Phaser.Input.Keyboard.JustUp(this.cursors.down))) {
-                this.bas = false
-            }
             // DEPLACEMENT
             if (surcorde == false) {
                 if (this.cursors.right.isDown) {
@@ -319,13 +337,16 @@ class scene1 extends Phaser.Scene {
                 if (this.cursors.up.isDown && this.player.body.onFloor()) {
                     this.player.setVelocityY(-400)
                 }
-                if (this.cursors.down.isDown) {
+                if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) {
                     if (this.player.body.onFloor()) {
                         this.collide_plateforme.active = false
                     }
                     else {
                         this.player.setVelocityY(300)
                     }
+                }
+                if ((Phaser.Input.Keyboard.JustUp(this.cursors.down))) {
+                    this.collide_plateforme.active = true
                 }
             }
 
@@ -379,12 +400,12 @@ class scene1 extends Phaser.Scene {
             else {
                 if (grimper == true && surcorde == true) {
                     this.player.body.allowGravity = true
-                    this.collide_plateforme.active = true
+                    // this.collide_plateforme.active = true
                 }
                 surcorde = false
                 if (grimper == false && monter == false) {
                     this.player.body.allowGravity = true
-                    this.collide_plateforme.active = true
+                    // this.collide_plateforme.active = true
                 }
 
             }
@@ -464,18 +485,22 @@ class scene1 extends Phaser.Scene {
     ChangeDirection(ennemi, hitbox) {
         if (ennemi.changedir == false) {
             if (ennemi.body.velocity.x > 0) {
+                ennemi.angle = 90
                 ennemi.setVelocityX(0)
                 ennemi.setVelocityY(100)
             }
             else if (ennemi.body.velocity.x < 0) {
+                ennemi.angle = -90
                 ennemi.setVelocityX(0)
                 ennemi.setVelocityY(-100)
             }
             else if (ennemi.body.velocity.y < 0) {
+                ennemi.angle = 0
                 ennemi.setVelocityX(100)
                 ennemi.setVelocityY(0)
             }
             else if (ennemi.body.velocity.y > 0) {
+                ennemi.angle = 180
                 ennemi.setVelocityX(-100)
                 ennemi.setVelocityY(0)
             }
@@ -489,6 +514,7 @@ class scene1 extends Phaser.Scene {
     damage() {
         if (this.invincible == false) {
             console.log("tu prends des degats")
+            this.cameras.main.shake(200, 0.001)
             HP -= 1
             this.invincible = true
             this.player.setTint("#FFB6C1")
@@ -511,6 +537,7 @@ class scene1 extends Phaser.Scene {
     }
     touchepiege() {
         if (this.invincible == false) {
+            this.cameras.main.shake(200, 0.0005)
             console.log("tu prends des degats(piege)")
             HP -= 1
             this.invincible = true
@@ -518,7 +545,7 @@ class scene1 extends Phaser.Scene {
             setTimeout(() => {
                 this.invincible = false
                 this.player.clearTint()
-            }, 200);
+            }, 500);
         }
 
         if (HP <= 0) {
