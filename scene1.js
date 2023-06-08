@@ -1,6 +1,6 @@
 var monter = false // "ASCENSEUR"
 var grimper = false  // UNLOCK CAPA GRIMPER
-var candash = false
+var candash = true
 var planer = false
 
 var surcorde = false
@@ -14,6 +14,8 @@ class scene1 extends Phaser.Scene {
         this.porte_unlock = false
         this.invincible = false
         this.changedir = false
+        this.isDashing = false
+        this.CDdash = true
 
     }
 
@@ -32,6 +34,7 @@ class scene1 extends Phaser.Scene {
         this.load.image('boule', 'assets/boule.png');
         this.load.image('abeille', 'assets/abeille.png');
         this.load.image("cloporte", "assets/ennemi_rampant.png");
+        this.load.image("mante", "assets/ennemi_marchant.png");
         this.load.image("tileset", "assets/tileset.png");
         this.load.image("background", "assets/background_herbe.png");
         this.load.image("inv", "assets/inv.png");
@@ -144,7 +147,7 @@ class scene1 extends Phaser.Scene {
 
 
         this.grpboss = this.physics.add.group({ immovable: true })
-        this.grpboss.create(-8 * 32, 38 * 32, "boss").setsize
+        this.grpboss.create(-8 * 32, 38 * 32, "mante")
 
         if (this.spawnx && this.spawny) {
             this.player = this.physics.add.sprite(this.spawnx, this.spawny, "fourmi");
@@ -237,7 +240,7 @@ class scene1 extends Phaser.Scene {
         this.cameras.main.zoom = 2;
         this.cameras.main.startFollow(this.player);
 
-        this.clavier = this.input.keyboard.addKeys('Z,Q,D,S,I,E,A,X,SPACE,TAB');
+        this.clavier = this.input.keyboard.addKeys('Z,Q,D,S,I,E,A,X,SPACE,TAB,SHIFT');
         this.cursors = this.input.keyboard.createCursorKeys();
 
         // INVENTAIRE
@@ -262,6 +265,16 @@ class scene1 extends Phaser.Scene {
 
 
     update() {
+        if (Phaser.Input.Keyboard.JustDown(this.clavier.SHIFT) && candash == true && this.CDdash == true) {
+            this.isDashing = true
+            this.CDdash = false 
+            setTimeout(() => {
+                this.isDashing = false
+            }, 300);
+            setTimeout(() => {
+                this.CDdash = true 
+            }, 5000);
+        }
 
         if (this.physics.overlap(this.player, this.grpsalleboss)) {
             console.log("salle boss")
@@ -322,10 +335,20 @@ class scene1 extends Phaser.Scene {
             // DEPLACEMENT
             if (surcorde == false) {
                 if (this.cursors.right.isDown) {
-                    this.player.setVelocityX(300)
-                    this.player.anims.play("right", true)
+                    if (this.isDashing == true) {
+                        this.player.setVelocityX(600)
+                    }
+                    else {
+                        this.player.setVelocityX(300)
+                        this.player.anims.play("right", true)
+                    }
+
+
                 }
                 else if (this.cursors.left.isDown) {
+                    if (this.isDashing == true) {
+                        this.player.setVelocityX(600)
+                    }
                     this.player.setVelocityX(-300)
                     this.player.anims.play("left", true)
                 }
