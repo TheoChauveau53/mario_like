@@ -267,12 +267,15 @@ class scene1 extends Phaser.Scene {
     update() {
         if (Phaser.Input.Keyboard.JustDown(this.clavier.SHIFT) && candash == true && this.CDdash == true) {
             this.isDashing = true
-            this.CDdash = false 
+            this.CDdash = false
+            this.player.body.allowGravity = false
+            this.player.setVelocityY(0)
+            console.log("pd")
             setTimeout(() => {
                 this.isDashing = false
             }, 300);
             setTimeout(() => {
-                this.CDdash = true 
+                this.CDdash = true
             }, 5000);
         }
 
@@ -330,7 +333,6 @@ class scene1 extends Phaser.Scene {
         if (inInv) {
 
         }
-
         if (!inInv) {
             // DEPLACEMENT
             if (surcorde == false) {
@@ -347,9 +349,11 @@ class scene1 extends Phaser.Scene {
                 }
                 else if (this.cursors.left.isDown) {
                     if (this.isDashing == true) {
-                        this.player.setVelocityX(600)
+                        this.player.setVelocityX(-600)
                     }
-                    this.player.setVelocityX(-300)
+                    else {
+                        this.player.setVelocityX(-300)
+                    }
                     this.player.anims.play("left", true)
                 }
                 else {
@@ -402,7 +406,7 @@ class scene1 extends Phaser.Scene {
                     }
                 }
                 else {
-                    if (surcorde == false && monter == false) {
+                    if (surcorde == false && monter == false && this.isDashing == false) {
                         this.player.body.allowGravity = true
                     }
                     this.player.angle = 0
@@ -420,7 +424,7 @@ class scene1 extends Phaser.Scene {
 
                 }
             }
-            else {
+            else if (this.isDashing == false) {
                 if (grimper == true && surcorde == true) {
                     this.player.body.allowGravity = true
                     // this.collide_plateforme.active = true
