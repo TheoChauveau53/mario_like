@@ -2,7 +2,7 @@ var monter = false // "ASCENSEUR"
 var grimper = false  // UNLOCK CAPA GRIMPER
 var candash = true
 var planer = false
-
+var cantaper = false
 var surcorde = false
 var inInv = false
 var HP = 4
@@ -58,6 +58,7 @@ class scene1 extends Phaser.Scene {
     create() {
 
 
+
         this.map = this.add.tilemap("map");
         this.tileset = this.map.addTilesetImage(
             "tileset",
@@ -93,6 +94,12 @@ class scene1 extends Phaser.Scene {
         this.piege = this.map.getObjectLayer("piege");
         this.piege.objects.forEach(coord => {
             this.grppiege.create(coord.x + 16, coord.y - 18, "piege");
+        });
+
+        this.grpwin = this.physics.add.group({ immovable: true, allowGravity: false })
+        this.win = this.map.getObjectLayer("win");
+        this.win.objects.forEach(coord => {
+            this.grpwin.create(coord.x + 16, coord.y - 18, "invisible");
         });
 
         this.grpcorde = this.physics.add.group({ immovable: true, allowGravity: false })
@@ -168,16 +175,21 @@ class scene1 extends Phaser.Scene {
         this.projectile = this.physics.add.group({ immovable: false, allowGravity: false })
 
         this.fourmi_ouvriere = this.physics.add.sprite(-61 * 32, 39 * 32, "fourmi_ouvriere")//.body.setAllowGravity(false).setImmovable(true)
+        this.fourmi_soldat = this.physics.add.sprite(-53 * 32, 3 * 32, "fourmi_soldat")
 
         this.boule = this.physics.add.group({ immovable: true, allowGravity: true })
 
+        this.txt_soldat = this.add.text(this.fourmi_soldat.x, this.fourmi_soldat.y - 36, "Appuie sur E pour me recruter", { fill: '#ffffff', fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif', fontSize: 32 }).setScale(0.5)
         this.txt_ouvriere = this.add.text(this.fourmi_ouvriere.x, this.fourmi_ouvriere.y - 36, "Appuie sur E pour me recruter", { fill: '#ffffff', fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif', fontSize: 32 }).setScale(0.5)
         this.vie = this.add.sprite(257, 120, "vie").setScrollFactor(0)
+
 
 
         this.solide.setCollisionByExclusion(-1, true);
         this.porte.setCollisionByExclusion(-1, true);
         this.clef.setCollisionByExclusion(-1, true);
+        
+        this.physics.add.collider(this.grpboss, this.solide);
 
         this.physics.add.collider(this.boule, this.solide);
         this.physics.add.collider(this.grpboss, this.boule);
@@ -192,6 +204,7 @@ class scene1 extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.grppiege, this.touchepiege, null, this);
         this.physics.add.collider(this.player, this.grpennemi, this.damage, null, this)
         this.physics.add.collider(this.fourmi_ouvriere, this.solide); // TODO
+        this.physics.add.collider(this.fourmi_soldat, this.solide);
         this.collide_porte = this.physics.add.collider(this.player, this.porte);
         this.physics.add.overlap(this.player, this.clef, this.getclef, null, this);
         this.collide_plateforme = this.physics.add.collider(this.player, this.grpplateforme);
@@ -281,6 +294,13 @@ class scene1 extends Phaser.Scene {
 
 
     update() {
+
+        if (this.player.body.velocity.y < 0) {
+            this.collide_plateforme.active = false
+        }
+        else if (!this.cursors.down.isDown) {
+            this.collide_plateforme.active = true
+        }
         if (this.CDboule == true) {
             this.CDboule = false
             setTimeout(() => {
@@ -341,7 +361,7 @@ class scene1 extends Phaser.Scene {
         this.boule.setVelocityX(200)
 
 
-        if (Phaser.Input.Keyboard.JustDown(this.clavier.F) && this.CDtaper == true) {
+        if (Phaser.Input.Keyboard.JustDown(this.clavier.F) && this.CDtaper == true && cantaper == true) {
             this.CDtaper = false
             setTimeout(() => {
                 this.CDtaper = true
@@ -399,7 +419,7 @@ class scene1 extends Phaser.Scene {
                     this.player.anims.stop()
                 }
                 if (this.cursors.up.isDown && this.player.body.onFloor()) {
-                    this.player.setVelocityY(-400)
+                    this.player.setVelocityY(-500)
                 }
                 if (Phaser.Input.Keyboard.JustDown(this.cursors.down)) {
                     if (this.player.body.onFloor()) {
@@ -514,37 +534,46 @@ class scene1 extends Phaser.Scene {
             if (this.porte_unlock == true) {
                 this.collide_porte.active = false
             }
-
-
-            // RECRUTER FOURMI OUVRIERE
-            if (this.player.x > this.fourmi_ouvriere.x) {
-                this.fourmi_ouvriere.anims.play("ouvriere_right")
-            }
-            else {
-                this.fourmi_ouvriere.anims.play("ouvriere_left")
-            }
-
-            if (this.physics.overlap(this.player, this.fourmi_ouvriere)) {
-                if (grimper == false) {
-                    this.txt_ouvriere.setVisible(true)
+            if (this.physics.overlap(this.player, this.fourmi_soldat)) {
+                if (cantaper == false) {
+                    this.txt_soldat.setVisible(true)
                 }
-                if (this.clavier.E.isDown) {
-                    this.txt_ouvriere.text = 'Tu as maintenant la capacité de grimper aux murs, tu pourras me retrouver en haut'
-
-                    setTimeout(() => {
-                        grimper = true
-                        this.fourmi_ouvriere.x = 8 * 32
-                        this.fourmi_ouvriere.y = 0
-                        // TODO CAMERA FLASH EFFECT 
-                    }, 2000);
-                }
+                if (this.clavier.E.isDown) { cantaper = true 
+                this.fourmi_soldat.destroy()
+                this.txt_soldat.setVisible(false)
             }
-            else {
-                this.txt_ouvriere.setVisible(false)
+
+
+                // RECRUTER FOURMI OUVRIERE
+                if (this.player.x > this.fourmi_ouvriere.x) {
+                    this.fourmi_ouvriere.anims.play("ouvriere_right")
+                }
+                else {
+                    this.fourmi_ouvriere.anims.play("ouvriere_left")
+                }
+
+                if (this.physics.overlap(this.player, this.fourmi_ouvriere)) {
+                    if (grimper == false) {
+                        this.txt_ouvriere.setVisible(true)
+                    }
+                    if (this.clavier.E.isDown) {
+                        this.txt_ouvriere.text = 'Tu as maintenant la capacité de grimper aux murs, tu pourras me retrouver en haut'
+
+                        setTimeout(() => {
+                            grimper = true
+                            this.fourmi_ouvriere.x = 8 * 32
+                            this.fourmi_ouvriere.y = 0
+                            // TODO CAMERA FLASH EFFECT 
+                        }, 2000);
+                    }
+                }
+                else {
+                    this.txt_ouvriere.setVisible(false)
+                }
+
             }
 
         }
-
     }
     ChangeDirection(ennemi, hitbox) {
         if (ennemi.changedir == false) {
@@ -589,7 +618,13 @@ class scene1 extends Phaser.Scene {
         }
         if (HP <= 0) {
             console.log("t'es mort")
-            this.scene.start("mort")
+            this.player.destroy()
+            if (this.spawnx && this.spawny) {
+                this.player = this.physics.add.sprite(this.spawnx, this.spawny, "fourmi");
+            }
+            else {
+                this.player = this.physics.add.sprite(8 * 32, 0, "fourmi")
+            }
         }
     }
     onImageClicked() {
@@ -614,14 +649,26 @@ class scene1 extends Phaser.Scene {
 
         if (HP <= 0) {
             console.log("t'es mort(piege)")
-            this.scene.start("mort")
+            this.player.destroy()
+            if (this.spawnx && this.spawny) {
+                this.player = this.physics.add.sprite(this.spawnx, this.spawny, "fourmi");
+            }
+            else {
+                this.player = this.physics.add.sprite(8 * 32, 0, "fourmi")
+            }
         }
     }
     kill(proj, ennemi) {
         ennemi.destroy()
     }
     mort() {
-        this.scene.start("mort")
+        this.player.destroy()
+        if (this.spawnx && this.spawny) {
+            this.player = this.physics.add.sprite(this.spawnx, this.spawny, "fourmi");
+        }
+        else {
+            this.player = this.physics.add.sprite(8 * 32, 0, "fourmi")
+        }
     }
 
 
