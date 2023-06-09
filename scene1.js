@@ -167,7 +167,7 @@ class scene1 extends Phaser.Scene {
 
         this.projectile = this.physics.add.group({ immovable: false, allowGravity: false })
 
-        this.fourmi_ouvriere = this.physics.add.sprite(-5 * 32, 11 * 32, "fourmi_ouvriere")//.body.setAllowGravity(false).setImmovable(true)
+        this.fourmi_ouvriere = this.physics.add.sprite(-61 * 32, 39 * 32, "fourmi_ouvriere")//.body.setAllowGravity(false).setImmovable(true)
 
         this.boule = this.physics.add.group({ immovable: true, allowGravity: true })
 
@@ -199,6 +199,7 @@ class scene1 extends Phaser.Scene {
         this.physics.add.overlap(this.projectile, this.grpboss, this.kill, null, this)
         this.physics.add.overlap(this.projectile, this.grpennemivolant, this.kill, null, this)
         this.physics.add.overlap(this.projectile, this.grpennemi, this.kill, null, this)
+        this.physics.add.overlap(this.projectile, this.grpbousier, this.kill, null, this)
 
         //fourmi ouvriere
         this.anims.create({
@@ -284,7 +285,7 @@ class scene1 extends Phaser.Scene {
             this.CDboule = false
             setTimeout(() => {
                 this.CDboule = true
-            }, 3000);
+            }, 6000);
             this.grpbousier.getChildren().forEach(ennemi =>
                 this.boule.create(ennemi.x, ennemi.y - 5, "boule"))
         }
