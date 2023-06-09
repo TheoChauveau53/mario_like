@@ -16,6 +16,8 @@ class scene1 extends Phaser.Scene {
         this.changedir = false
         this.isDashing = false
         this.CDdash = true
+        this.CDtaper = true
+        this.CDboule = true
 
     }
 
@@ -34,6 +36,7 @@ class scene1 extends Phaser.Scene {
         this.load.image('boule', 'assets/boule.png');
         this.load.image('abeille', 'assets/abeille.png');
         this.load.image("cloporte", "assets/ennemi_rampant.png");
+        this.load.image("bousier", "assets/bousier.png");
         this.load.image("mante", "assets/ennemi_marchant.png");
         this.load.image("tileset", "assets/tileset.png");
         this.load.image("background", "assets/background_herbe.png");
@@ -133,10 +136,16 @@ class scene1 extends Phaser.Scene {
             this.grpsalleboss.create(coord.x + 16, coord.y - 16, "invisible");
         });
 
+        this.grpbousier = this.physics.add.group({ immovable: true, allowGravity: false })
+        this.bousier = this.map.getObjectLayer("bousier");
+        this.bousier.objects.forEach(coord => {
+            this.grpbousier.create(coord.x + 16, coord.y - 16, "bousier").setScale(0.5);
+        });
+
         this.grpennemivolant = this.physics.add.group({ immovable: false, allowGravity: false })
         this.ennemivolant = this.map.getObjectLayer("ennemi volant");
         this.ennemivolant.objects.forEach(coord => {
-            this.grpennemivolant.create(coord.x + 16, coord.y - 16, "abeille").setScale(0.5);
+            this.grpennemivolant.create(coord.x + 16, coord.y - 16, "abeille").setScale(2);
         });
         this.grpennemivolant.getChildren().forEach(ennemi => {
             ennemi.spawnx = ennemi.x
@@ -156,9 +165,11 @@ class scene1 extends Phaser.Scene {
             this.player = this.physics.add.sprite(8 * 32, 0, "fourmi")
         }
 
+        this.projectile = this.physics.add.group({ immovable: false, allowGravity: false })
+
         this.fourmi_ouvriere = this.physics.add.sprite(-5 * 32, 11 * 32, "fourmi_ouvriere")//.body.setAllowGravity(false).setImmovable(true)
 
-        this.boule = this.physics.add.sprite(4 * 32, -1 * 32, "boule").setCircle(32, 0, 0).setImmovable(true).setVelocityX(200)
+        this.boule = this.physics.add.group({ immovable: true, allowGravity: true })
 
         this.txt_ouvriere = this.add.text(this.fourmi_ouvriere.x, this.fourmi_ouvriere.y - 36, "Appuie sur E pour me recruter", { fill: '#ffffff', fontFamily: 'Georgia, "Goudy Bookletter 1911", Times, serif', fontSize: 32 }).setScale(0.5)
         this.vie = this.add.sprite(257, 120, "vie").setScrollFactor(0)
@@ -176,7 +187,7 @@ class scene1 extends Phaser.Scene {
         this.physics.add.collider(this.grpennemivolant, this.solide);
         this.physics.add.collider(this.grpennemivolant, this.player, this.damage, null, this);
 
-        this.physics.add.collider(this.player, this.boule);
+        this.physics.add.collider(this.player, this.boule, this.mort, null, this);
         this.physics.add.collider(this.player, this.solide);
         this.physics.add.overlap(this.player, this.grppiege, this.touchepiege, null, this);
         this.physics.add.collider(this.player, this.grpennemi, this.damage, null, this)
@@ -184,6 +195,10 @@ class scene1 extends Phaser.Scene {
         this.collide_porte = this.physics.add.collider(this.player, this.porte);
         this.physics.add.overlap(this.player, this.clef, this.getclef, null, this);
         this.collide_plateforme = this.physics.add.collider(this.player, this.grpplateforme);
+        // TAPER
+        this.physics.add.overlap(this.projectile, this.grpboss, this.kill, null, this)
+        this.physics.add.overlap(this.projectile, this.grpennemivolant, this.kill, null, this)
+        this.physics.add.overlap(this.projectile, this.grpennemi, this.kill, null, this)
 
         //fourmi ouvriere
         this.anims.create({
@@ -240,7 +255,7 @@ class scene1 extends Phaser.Scene {
         this.cameras.main.zoom = 2;
         this.cameras.main.startFollow(this.player);
 
-        this.clavier = this.input.keyboard.addKeys('Z,Q,D,S,I,E,A,X,SPACE,TAB,SHIFT');
+        this.clavier = this.input.keyboard.addKeys('Z,Q,D,S,I,E,A,X,SPACE,TAB,SHIFT,F');
         this.cursors = this.input.keyboard.createCursorKeys();
 
         // INVENTAIRE
@@ -265,12 +280,21 @@ class scene1 extends Phaser.Scene {
 
 
     update() {
+        if (this.CDboule == true) {
+            this.CDboule = false
+            setTimeout(() => {
+                this.CDboule = true
+            }, 3000);
+            this.grpbousier.getChildren().forEach(ennemi =>
+                this.boule.create(ennemi.x, ennemi.y - 5, "boule"))
+        }
+        this.boule.getChildren().forEach(boule =>
+            boule.setCircle(32, 0, 0))
         if (Phaser.Input.Keyboard.JustDown(this.clavier.SHIFT) && candash == true && this.CDdash == true) {
             this.isDashing = true
             this.CDdash = false
             this.player.body.allowGravity = false
             this.player.setVelocityY(0)
-            console.log("pd")
             setTimeout(() => {
                 this.isDashing = false
             }, 300);
@@ -295,11 +319,9 @@ class scene1 extends Phaser.Scene {
 
         if (Phaser.Input.Keyboard.JustDown(this.clavier.TAB)) {
             this.cameramap.setVisible(true)
-
         }
         if (Phaser.Input.Keyboard.JustUp(this.clavier.TAB)) {
             this.cameramap.setVisible(false)
-
         }
 
         if (HP == 4) {
@@ -316,23 +338,37 @@ class scene1 extends Phaser.Scene {
         }
 
         this.boule.setVelocityX(200)
-        if (Phaser.Input.Keyboard.JustDown(this.clavier.I)) {
-            if (!inInv) {
-                console.log("Ca entre");
-                inInv = true;
-                this.image.setVisible(true);
-                this.fleche_left.setVisible(true);
 
-            } else {
-                console.log("Ca sort");
-                inInv = false;
-                this.image.setVisible(false);
-                this.fleche_left.setVisible(false);
+
+        if (Phaser.Input.Keyboard.JustDown(this.clavier.F) && this.CDtaper == true) {
+            this.CDtaper = false
+            setTimeout(() => {
+                this.CDtaper = true
+            }, 1000);
+            if (this.player.anims.currentAnim.key == 'right') {
+                this.projectile.create(this.player.x + 32, this.player.y, "invisible")
+                setTimeout(() => {
+                    this.projectile.getChildren()[0].destroy()
+                }, 400);
+            }
+            else if (this.player.anims.currentAnim.key == 'left') {
+                this.projectile.create(this.player.x - 32, this.player.y, "invisible")
+                setTimeout(() => {
+                    this.projectile.getChildren()[0].destroy()
+                }, 400);
             }
         }
-        if (inInv) {
-
+        if (this.projectile.getChildren()[0]) {
+            if (this.cursors.right.isDown) {
+                this.projectile.getChildren()[0].x = this.player.x + 32
+                this.projectile.getChildren()[0].y = this.player.y
+            }
+            if (this.cursors.left.isDown) {
+                this.projectile.getChildren()[0].x = this.player.x - 32
+                this.projectile.getChildren()[0].y = this.player.y
+            }
         }
+
         if (!inInv) {
             // DEPLACEMENT
             if (surcorde == false) {
@@ -580,5 +616,12 @@ class scene1 extends Phaser.Scene {
             this.scene.start("mort")
         }
     }
+    kill(proj, ennemi) {
+        ennemi.destroy()
+    }
+    mort() {
+        this.scene.start("mort")
+    }
+
 
 }
